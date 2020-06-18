@@ -1,0 +1,23 @@
+{
+  "name": "vue-session",
+  "version": "1.0.0",
+  "description": "Vue Session with TypeScript support.",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mekoidigret/vue-session.git"
+  },
+  "keywords": [
+    "Vue",
+    "Session"
+  ],
+  "author": "John Michael Manlupig",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mekoidigret/vue-session/issues"
+  },
+  "homepage": "https://github.com/mekoidigret/vue-session#readme",
+  "types": "dist/index.d.ts",
+  "prepublish": "tsc"
+}
