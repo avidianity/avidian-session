@@ -2,8 +2,10 @@
   "name": "vue-session",
   "version": "1.0.0",
   "description": "Vue Session with TypeScript support.",
-  "main": "index.js",
-  "scripts": {},
+  "main": "index.ts",
+  "scripts": {
+    "publish": "npm publish"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mekoidigret/vue-session.git"
