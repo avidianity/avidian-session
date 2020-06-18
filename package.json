@@ -1,6 +1,6 @@
 {
   "name": "vue-sessions",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Vue Session with TypeScript support.",
   "main": "index.ts",
   "scripts": {
