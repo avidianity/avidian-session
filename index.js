@@ -23,20 +23,21 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.FlashSession = exports.ExpiringSession = exports.SessionException = exports.Session = void 0;
+exports.__esModule = true;
+exports.NonPersistingSession = exports.FlashSession = exports.ExpiringSession = exports.SessionException = void 0;
 var Session = /** @class */ (function () {
     function Session() {
-        this.key = 'vue-session-key';
-        this.token_key = 'vue-token-key';
+        this.key = "vue-session-key";
+        this.token_key = "vue-token-key";
         this.Storage = window.localStorage;
         this.state = {};
         this.temp = new ExpiringSession(this);
         this.flash = new FlashSession(this);
+        this.nonpersisting = new NonPersistingSession();
     }
     Session.prototype.start = function () {
         var data = this.getAll();
-        data['session-id'] = "sess:" + Date.now();
+        data["session-id"] = "sess:" + Date.now();
         return this.setAll(data);
     };
     Session.prototype.has = function (key) {
@@ -51,11 +52,11 @@ var Session = /** @class */ (function () {
     };
     Session.prototype.set = function (key, data) {
         var _a;
-        if (key === 'session-id' || key === 'key') {
+        if (key === "session-id" || key === "key") {
             return this;
         }
         var session_data = this.getAll();
-        if (!('session-id' in session_data)) {
+        if (!("session-id" in session_data)) {
             this.start();
         }
         return this.setAll(__assign(__assign({}, session_data), (_a = {}, _a[key] = data, _a)));
@@ -65,18 +66,18 @@ var Session = /** @class */ (function () {
         if (clear) {
             this.clear();
             return this.setAll({
-                'session-id': "sess:" + Date.now(),
+                "session-id": "sess:" + Date.now()
             });
         }
         else {
             var data = this.getAll();
-            data['session-id'] = "sess:" + Date.now();
+            data["session-id"] = "sess:" + Date.now();
             return this.setAll(data);
         }
     };
     Session.prototype.getAll = function () {
         try {
-            var data = JSON.parse(this.Storage.getItem(this.key) || '');
+            var data = JSON.parse(this.Storage.getItem(this.key) || "");
             return data;
         }
         catch (error) {
@@ -84,63 +85,103 @@ var Session = /** @class */ (function () {
         }
     };
     Session.prototype.setAll = function (data) {
-        var _this = this;
-        var _loop_1 = function (key) {
-            if (!(key in this_1.state)) {
-                Object.defineProperty(this_1, key, {
-                    configurable: true,
-                    get: function () {
-                        return _this.state[key];
-                    },
-                    set: function (value) {
-                        throw new SessionException('Magic properties cannot be set explicitly. Use Session.set(key, data) instead.');
-                    },
-                });
-            }
-        };
-        var this_1 = this;
-        for (var key in data) {
-            _loop_1(key);
-        }
         this.state = data;
         this.Storage.setItem(this.key, JSON.stringify(data));
         return this;
     };
     Session.prototype.id = function () {
-        return this.get('session-id');
+        return this.get("session-id");
     };
     Session.prototype.clear = function () {
-        for (var key in this.state) {
-            this.remove(key);
-        }
-        return this.setAll({});
+        this.state = {};
+        this.setAll({});
+        return this.start();
+    };
+    Session.prototype.clearAll = function () {
+        this.removeUser();
+        this.clear();
+        this.flash.clear();
+        this.temp.clear();
+        this.nonpersisting.clear();
+        return this;
     };
     Session.prototype.remove = function (key) {
+        var data = this.getAll();
+        delete data[key];
+        this.setAll(data);
         delete this.state;
         delete this[key];
         return this;
     };
-    Session.prototype.token = function (token) {
+    Session.prototype.token = function (token, remember) {
+        if (remember === void 0) { remember = true; }
         if (token !== undefined) {
-            return this.set(this.token_key, token);
+            if (remember) {
+                return this.set(this.token_key, token);
+            }
+            else {
+                this.nonpersisting.set(this.token_key, token);
+                return this;
+            }
         }
-        return this.get(this.token_key);
+        if (this.has(this.token_key)) {
+            // persisting
+            return this.get(this.token_key);
+        }
+        else if (this.nonpersisting.has(this.token_key)) {
+            // non persisting
+            return this.nonpersisting.get(this.token_key);
+        }
+        return null;
     };
     Session.prototype.revokeToken = function () {
-        return this.remove(this.token_key);
+        if (this.has(this.token_key)) {
+            return this.remove(this.token_key);
+        }
+        else if (this.nonpersisting.has(this.token_key)) {
+            this.nonpersisting.remove(this.token_key);
+            return this;
+        }
+        return this;
     };
     Session.prototype.hasToken = function () {
-        return this.has(this.token_key);
+        return (this.has(this.token_key) || this.nonpersisting.has(this.token_key));
     };
-    Session.prototype.user = function (user) {
+    Session.prototype.user = function (user, remember) {
+        if (remember === void 0) { remember = true; }
         if (user !== undefined) {
-            return this.set('user', user);
+            if (remember) {
+                return this.set("user-session", user);
+            }
+            else {
+                this.nonpersisting.set("user-session", user);
+                return this;
+            }
         }
-        return this.get('user');
+        if (this.has("user-session")) {
+            // persisting
+            return this.get("user-session");
+        }
+        else if (this.nonpersisting.has("user-session")) {
+            // non persisting
+            return this.nonpersisting.get("user-session");
+        }
+        return null;
+    };
+    Session.prototype.removeUser = function () {
+        if (this.has("user-session")) {
+            // persisting
+            this.remove("user-session");
+        }
+        else if (this.nonpersisting.has("user-session")) {
+            // non persisting
+            this.nonpersisting.remove("user-session");
+        }
+        return this;
     };
     return Session;
 }());
-exports.Session = Session;
+exports["default"] = Session;
 var SessionException = /** @class */ (function (_super) {
     __extends(SessionException, _super);
     function SessionException(message) {
@@ -152,14 +193,22 @@ exports.SessionException = SessionException;
 var ExpiringSession = /** @class */ (function () {
     function ExpiringSession(parent) {
         this.id = "sess-temp:" + Date.now();
-        this.key = 'vue-expiring-session-key';
+        this.key = "vue-expiring-session-key";
         this.parent = parent;
-        this.setAll({
-            'session-id': this.id,
-        });
+        if (!("session-id" in this.getAll())) {
+            this.setAll({
+                "session-id": this.id
+            });
+        }
     }
     ExpiringSession.prototype.getAll = function () {
-        return this.parent.get(this.key);
+        try {
+            var data = this.parent.get(this.key);
+            return data !== null ? data : {};
+        }
+        catch (error) {
+            return {};
+        }
     };
     ExpiringSession.prototype.get = function (key) {
         var session = this.getAll();
@@ -182,7 +231,7 @@ var ExpiringSession = /** @class */ (function () {
     ExpiringSession.prototype.set = function (key, value, minutes) {
         var data = {
             value: value,
-            expiry: new Date(Date.now() + minutes * 60 * 1000).getTime(),
+            expiry: new Date(Date.now() + minutes * 60 * 1000).getTime()
         };
         var session = this.getAll();
         session[key] = data;
@@ -220,12 +269,12 @@ var ExpiringSession = /** @class */ (function () {
         this.id = "sess-temp:" + Date.now();
         if (clear) {
             return this.setAll({
-                'session-id': this.id,
+                "session-id": this.id
             });
         }
         else {
             var data = this.getAll();
-            data['session-id'] = this.id;
+            data["session-id"] = this.id;
             return this.setAll(data);
         }
     };
@@ -234,15 +283,20 @@ var ExpiringSession = /** @class */ (function () {
 exports.ExpiringSession = ExpiringSession;
 var FlashSession = /** @class */ (function () {
     function FlashSession(session) {
-        this.key = 'vue-flash-session-key';
+        this.key = "vue-flash-session-key";
         this.parent = session;
-        this.setAll({});
+        var state = this.getAll();
+        if (state === null) {
+            this.setAll({});
+        }
+        else {
+            this.setAll(state);
+        }
     }
     FlashSession.prototype.get = function (key) {
         var data = this.getAll();
         var value = data[key];
-        delete data[key];
-        this.setAll(data);
+        this.remove(key);
         return value;
     };
     FlashSession.prototype.set = function (key, value) {
@@ -251,7 +305,11 @@ var FlashSession = /** @class */ (function () {
         return this.setAll(data);
     };
     FlashSession.prototype.getAll = function () {
-        return this.parent.get(this.key);
+        var state = this.parent.get(this.key);
+        if (state === null) {
+            return {};
+        }
+        return state;
     };
     FlashSession.prototype.setAll = function (data) {
         this.parent.set(this.key, data);
@@ -263,6 +321,7 @@ var FlashSession = /** @class */ (function () {
     FlashSession.prototype.remove = function (key) {
         var data = this.getAll();
         delete data[key];
+        this.setAll(data);
         return this;
     };
     FlashSession.prototype.clear = function () {
@@ -271,8 +330,42 @@ var FlashSession = /** @class */ (function () {
     return FlashSession;
 }());
 exports.FlashSession = FlashSession;
-exports.default = {
-    install: function (Vue, options) {
-        Vue.prototype.$session = new Session();
-    },
-};
+var NonPersistingSession = /** @class */ (function () {
+    function NonPersistingSession() {
+        this.key = "vue-non-persisting-session-key";
+        this.Storage = window.sessionStorage;
+    }
+    NonPersistingSession.prototype.get = function (key) {
+        return this.has(key) ? this.getAll()[key] : null;
+    };
+    NonPersistingSession.prototype.getAll = function () {
+        try {
+            return JSON.parse(this.Storage.getItem(this.key) || "");
+        }
+        catch (error) {
+            return {};
+        }
+    };
+    NonPersistingSession.prototype.set = function (key, value) {
+        var data = this.getAll();
+        data[key] = value;
+        return this.setAll(data);
+    };
+    NonPersistingSession.prototype.setAll = function (data) {
+        this.Storage.setItem(this.key, JSON.stringify(data));
+        return this;
+    };
+    NonPersistingSession.prototype.remove = function (key) {
+        var data = this.getAll();
+        delete data[key];
+        return this.setAll(data);
+    };
+    NonPersistingSession.prototype.clear = function () {
+        return this.setAll({});
+    };
+    NonPersistingSession.prototype.has = function (key) {
+        return key in this.getAll();
+    };
+    return NonPersistingSession;
+}());
+exports.NonPersistingSession = NonPersistingSession;

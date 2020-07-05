@@ -3,27 +3,30 @@ import SessionContract, {
 	ExpiringStateContract,
 	ExpiryContract,
 	FlashStateContract,
-} from './types';
+	NonPersistingStateContract,
+} from "./types";
 
-export class Session implements SessionContract {
+export default class Session implements SessionContract {
 	key: string;
 	token_key: string;
 	Storage: typeof window.localStorage;
 	state: StateContract;
 	temp: ExpiringSession;
 	flash: FlashSession;
+	nonpersisting: NonPersistingSession;
 	[key: string]: any;
 	constructor() {
-		this.key = 'vue-session-key';
-		this.token_key = 'vue-token-key';
+		this.key = "vue-session-key";
+		this.token_key = "vue-token-key";
 		this.Storage = window.localStorage;
 		this.state = {};
 		this.temp = new ExpiringSession(this);
 		this.flash = new FlashSession(this);
+		this.nonpersisting = new NonPersistingSession();
 	}
 	start() {
 		const data = this.getAll() as StateContract;
-		data['session-id'] = `sess:${Date.now()}`;
+		data["session-id"] = `sess:${Date.now()}`;
 		return this.setAll(data);
 	}
 	has(key: string): boolean {
@@ -37,11 +40,11 @@ export class Session implements SessionContract {
 		return null;
 	}
 	set(key: string, data: any): this {
-		if (key === 'session-id' || key === 'key') {
+		if (key === "session-id" || key === "key") {
 			return this;
 		}
 		const session_data = this.getAll();
-		if (!('session-id' in session_data)) {
+		if (!("session-id" in session_data)) {
 			this.start();
 		}
 		return this.setAll({
@@ -53,73 +56,110 @@ export class Session implements SessionContract {
 		if (clear) {
 			this.clear();
 			return this.setAll({
-				'session-id': `sess:${Date.now()}`,
+				"session-id": `sess:${Date.now()}`,
 			});
 		} else {
 			const data = this.getAll() as StateContract;
-			data['session-id'] = `sess:${Date.now()}`;
+			data["session-id"] = `sess:${Date.now()}`;
 			return this.setAll(data);
 		}
 	}
 	getAll(): object {
 		try {
-			const data = JSON.parse(this.Storage.getItem(this.key) || '');
+			const data = JSON.parse(this.Storage.getItem(this.key) || "");
 			return data;
 		} catch (error) {
 			return {};
 		}
 	}
 	setAll(data: object) {
-		for (let key in data) {
-			if (!(key in this.state)) {
-				Object.defineProperty(this, key, {
-					configurable: true,
-					get: () => {
-						return this.state[key];
-					},
-					set: (value) => {
-						throw new SessionException(
-							'Magic properties cannot be set explicitly. Use Session.set(key, data) instead.'
-						);
-					},
-				});
-			}
-		}
 		this.state = data;
 		this.Storage.setItem(this.key, JSON.stringify(data));
 		return this;
 	}
 	id(): string {
-		return this.get('session-id');
+		return this.get("session-id");
 	}
 	clear(): this {
-		for (let key in this.state) {
-			this.remove(key);
-		}
-		return this.setAll({});
+		this.state = {};
+		this.setAll({});
+		return this.start();
+	}
+	clearAll(): this {
+		this.removeUser();
+		this.clear();
+		this.flash.clear();
+		this.temp.clear();
+		this.nonpersisting.clear();
+		return this;
 	}
 	remove(key: string): this {
+		const data = this.getAll() as any;
+		delete data[key];
+		this.setAll(data);
 		delete this.state;
 		delete this[key];
 		return this;
 	}
-	token(token?: string): this | string {
+	token(token?: string, remember = true): this | string | null {
 		if (token !== undefined) {
-			return this.set(this.token_key, token) as this;
+			if (remember) {
+				return this.set(this.token_key, token) as this;
+			} else {
+				this.nonpersisting.set(this.token_key, token);
+				return this;
+			}
 		}
-		return this.get(this.token_key) as string;
+		if (this.has(this.token_key)) {
+			// persisting
+			return this.get(this.token_key) as string;
+		} else if (this.nonpersisting.has(this.token_key)) {
+			// non persisting
+			return this.nonpersisting.get(this.token_key) as string;
+		}
+		return null;
 	}
 	revokeToken(): this {
-		return this.remove(this.token_key);
+		if (this.has(this.token_key)) {
+			return this.remove(this.token_key);
+		} else if (this.nonpersisting.has(this.token_key)) {
+			this.nonpersisting.remove(this.token_key);
+			return this;
+		}
+		return this;
 	}
 	hasToken(): boolean {
-		return this.has(this.token_key);
+		return (
+			this.has(this.token_key) || this.nonpersisting.has(this.token_key)
+		);
 	}
-	user(user?: any): any {
+	user(user?: any, remember = true): any {
 		if (user !== undefined) {
-			return this.set('user', user);
+			if (remember) {
+				return this.set("user-session", user);
+			} else {
+				this.nonpersisting.set("user-session", user);
+				return this;
+			}
 		}
-		return this.get('user');
+		if (this.has("user-session")) {
+			// persisting
+			return this.get("user-session");
+		} else if (this.nonpersisting.has("user-session")) {
+			// non persisting
+			return this.nonpersisting.get("user-session");
+		}
+		return null;
+	}
+	removeUser(): this {
+		if (this.has("user-session")) {
+			// persisting
+			this.remove("user-session");
+		} else if (this.nonpersisting.has("user-session")) {
+			// non persisting
+			this.nonpersisting.remove("user-session");
+		}
+		return this;
 	}
 }
 
@@ -135,14 +175,21 @@ export class ExpiringSession implements ExpiringStateContract {
 	parent: Session;
 	constructor(parent: Session) {
 		this.id = `sess-temp:${Date.now()}`;
-		this.key = 'vue-expiring-session-key';
+		this.key = "vue-expiring-session-key";
 		this.parent = parent;
-		this.setAll({
-			'session-id': this.id,
-		});
+		if (!("session-id" in this.getAll())) {
+			this.setAll({
+				"session-id": this.id,
+			});
+		}
 	}
 	getAll(): any {
-		return this.parent.get(this.key);
+		try {
+			const data = this.parent.get(this.key);
+			return data !== null ? data : {};
+		} catch (error) {
+			return {};
+		}
 	}
 	get(key: string): any {
 		const session = this.getAll();
@@ -202,11 +249,11 @@ export class ExpiringSession implements ExpiringStateContract {
 		this.id = `sess-temp:${Date.now()}`;
 		if (clear) {
 			return this.setAll({
-				'session-id': this.id,
+				"session-id": this.id,
 			});
 		} else {
 			const data = this.getAll();
-			data['session-id'] = this.id;
+			data["session-id"] = this.id;
 			return this.setAll(data);
 		}
 	}
@@ -216,15 +263,19 @@ export class FlashSession implements FlashStateContract {
 	key: string;
 	parent: Session;
 	constructor(session: Session) {
-		this.key = 'vue-flash-session-key';
+		this.key = "vue-flash-session-key";
 		this.parent = session;
-		this.setAll({});
+		const state = this.getAll();
+		if (state === null) {
+			this.setAll({});
+		} else {
+			this.setAll(state);
+		}
 	}
 	get(key: string): any {
 		const data = this.getAll();
 		const value = data[key];
-		delete data[key];
-		this.setAll(data);
+		this.remove(key);
 		return value;
 	}
 	set(key: string, value: any): this {
@@ -233,7 +284,11 @@ export class FlashSession implements FlashStateContract {
 		return this.setAll(data);
 	}
 	getAll(): any {
-		return this.parent.get(this.key);
+		const state = this.parent.get(this.key);
+		if (state === null) {
+			return {};
+		}
+		return state;
 	}
 	setAll(data: any): this {
 		this.parent.set(this.key, data);
@@ -245,6 +300,7 @@ export class FlashSession implements FlashStateContract {
 	remove(key: string): this {
 		const data = this.getAll();
 		delete data[key];
+		this.setAll(data);
 		return this;
 	}
 	clear(): this {
@@ -252,8 +308,41 @@ export class FlashSession implements FlashStateContract {
 	}
 }
 
-export default {
-	install(Vue: any, options?: any) {
-		Vue.prototype.$session = new Session();
-	},
-};
+export class NonPersistingSession implements NonPersistingStateContract {
+	key: string;
+	Storage: typeof window.sessionStorage;
+	constructor() {
+		this.key = "vue-non-persisting-session-key";
+		this.Storage = window.sessionStorage;
+	}
+	get(key: string): any {
+		return this.has(key) ? (this.getAll() as any)[key] : null;
+	}
+	getAll(): Object {
+		try {
+			return JSON.parse(this.Storage.getItem(this.key) || "");
+		} catch (error) {
+			return {};
+		}
+	}
+	set(key: string, value: any): this {
+		const data = this.getAll() as any;
+		data[key] = value;
+		return this.setAll(data);
+	}
+	setAll(data: object): this {
+		this.Storage.setItem(this.key, JSON.stringify(data));
+		return this;
+	}
+	remove(key: string): this {
+		const data = this.getAll() as any;
+		delete data[key];
+		return this.setAll(data);
+	}
+	clear(): this {
+		return this.setAll({});
+	}
+	has(key: string): boolean {
+		return key in this.getAll();
+	}
+}
