@@ -1,3 +1,3 @@
-# Vue Session
+# Avidian Session
 
-A Vue library for session management with TypeScript support.
+A library for session management with TypeScript support. Tested in React and Vue.

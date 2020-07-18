@@ -1,6 +1,6 @@
 {
-  "name": "vue-sessions",
-  "version": "1.0.0",
+  "name": "avidian-session",
+  "version": "0.1.0",
   "description": "Vue Session with TypeScript support.",
   "main": "index.ts",
   "scripts": {
