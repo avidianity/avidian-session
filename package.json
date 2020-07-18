@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mekoidigret/vue-session.git"
+    "url": "git+https://github.com/avidianitry/avidian-session.git"
   },
   "keywords": [
     "Vue",
@@ -17,9 +17,9 @@
   "author": "John Michael Manlupig",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mekoidigret/vue-session/issues"
+    "url": "https://github.com/avidianitry/avidian-session/issues"
   },
-  "homepage": "https://github.com/mekoidigret/vue-session#readme",
+  "homepage": "https://github.com/avidianitry/avidian-session#readme",
   "types": "dist/index.d.ts",
   "prepublish": "tsc"
 }
