@@ -1,7 +1,7 @@
 {
   "name": "avidian-session",
-  "version": "0.1.0",
-  "description": "Vue Session with TypeScript support.",
+  "version": "1.0.0",
+  "description": "A Session management library with TypeScript support.",
   "main": "index.ts",
   "scripts": {
     "publish": "npm publish"
