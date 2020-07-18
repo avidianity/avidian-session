@@ -1,6 +1,6 @@
 {
   "name": "avidian-session",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Session management library with TypeScript support.",
   "main": "index.ts",
   "scripts": {
