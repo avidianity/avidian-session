@@ -10,10 +10,10 @@ export default class Session implements SessionContract {
 	key: string;
 	token_key: string;
 	Storage: typeof window.localStorage;
-	state: StateContract;
-	temp: ExpiringSession;
-	flash: FlashSession;
-	nonpersisting: NonPersistingSession;
+	private state: StateContract;
+	private temp: ExpiringSession;
+	private flash: FlashSession;
+	private nonpersisting: NonPersistingSession;
 	[key: string]: any;
 	constructor() {
 		this.key = 'avidian-session-key';
@@ -24,6 +24,7 @@ export default class Session implements SessionContract {
 		this.flash = new FlashSession(this);
 		this.nonpersisting = new NonPersistingSession();
 	}
+
 	/**
 	 * Starts a persistent session.
 	 */
@@ -32,6 +33,7 @@ export default class Session implements SessionContract {
 		data['session-id'] = `sess:${Date.now()}`;
 		return this.setAll(data);
 	}
+
 	/**
 	 * Checks if a key is set in the Session.
 	 * @param {string} key
@@ -40,6 +42,7 @@ export default class Session implements SessionContract {
 	has(key: string): boolean {
 		return key in this.getAll();
 	}
+
 	/**
 	 * Gets a value from the Session using the specified key.
 	 *
@@ -54,6 +57,7 @@ export default class Session implements SessionContract {
 		}
 		return null;
 	}
+
 	/**
 	 * Sets a key with a given value or data.
 	 *
@@ -75,6 +79,7 @@ export default class Session implements SessionContract {
 			[key]: data,
 		});
 	}
+
 	/**
 	 * Renew's the Session's ID.
 	 * @param {boolean} clear - Whether to clear existing data or not.
@@ -89,11 +94,12 @@ export default class Session implements SessionContract {
 			return this.setAll(data);
 		}
 	}
+
 	/**
 	 * Gets all the data that's saved in the Session.
 	 * @returns {object} data
 	 */
-	getAll(): StateContract {
+	private getAll(): StateContract {
 		try {
 			const data = JSON.parse(this.Storage.getItem(this.key) || '');
 			return data;
@@ -101,6 +107,7 @@ export default class Session implements SessionContract {
 			return {};
 		}
 	}
+
 	/**
 	 * Saves the data into the window.localStorage object.
 	 *
@@ -109,11 +116,12 @@ export default class Session implements SessionContract {
 	 * @param {object} data
 	 * @returns {this} this
 	 */
-	setAll(data: object): this {
+	private setAll(data: object): this {
 		this.state = data;
 		this.Storage.setItem(this.key, JSON.stringify(data));
 		return this;
 	}
+
 	/**
 	 * Gets the current ID of the Session which contains the time of when the Session was first used.
 	 * @returns {string} Session ID
@@ -121,6 +129,7 @@ export default class Session implements SessionContract {
 	id(): string {
 		return this.get('session-id');
 	}
+
 	/**
 	 * Clears all saved data and creates a new Session ID.
 	 * @returns {this} this
@@ -130,6 +139,7 @@ export default class Session implements SessionContract {
 		this.setAll({});
 		return this.start();
 	}
+
 	/**
 	 * Clears all saved data including the data from the other
 	 * child sessions (FlashSession, ExpiringSession, NonPersistingSession).
@@ -142,6 +152,7 @@ export default class Session implements SessionContract {
 		this.nonpersisting.clear();
 		return this;
 	}
+
 	/**
 	 * Removes a value or data from the Session if the key exists.
 	 * @param {string} key
@@ -156,6 +167,7 @@ export default class Session implements SessionContract {
 		}
 		return this;
 	}
+
 	/**
 	 * This method is used as a getter and setter for the user's token.
 	 *
@@ -163,7 +175,7 @@ export default class Session implements SessionContract {
 	 * any will return a token if it exists or null if it does not exist.
 	 * @param token - If passed a token, it will be saved. Otherwise a token will be returned if it exists already.
 	 * @param remember - Whether to persist the token on page reloads or not.
-	 * @returns {(this|string|null)} set = this, get = string | null
+	 * @returns {(this|string|null)} this | string | null
 	 */
 	token(token?: string, remember = true): this | string | null {
 		if (token !== undefined) {
@@ -183,6 +195,7 @@ export default class Session implements SessionContract {
 		}
 		return null;
 	}
+
 	/**
 	 * Removes the token that is currently saved if there is any.
 	 * @returns {this} this
@@ -196,6 +209,7 @@ export default class Session implements SessionContract {
 		}
 		return this;
 	}
+
 	/**
 	 * Checks if a token is saved.
 	 * @returns {boolean} true or false
@@ -205,6 +219,7 @@ export default class Session implements SessionContract {
 			this.has(this.token_key) || this.nonpersisting.has(this.token_key)
 		);
 	}
+
 	/**
 	 * This method is used as a getter and setter for the user's data.
 	 *
@@ -212,7 +227,7 @@ export default class Session implements SessionContract {
 	 * any will return a user if it exists or null if it does not exist.
 	 * @param user - If passed a user, it will be saved. Otherwise a user will be returned if it exists already.
 	 * @param remember - Whether to persist the user on page reloads or not.
-	 * @returns {(this|user|null)} set = this, get = user | null
+	 * @returns {(this|user|null)} this | user | null
 	 */
 	user(user?: any, remember = true): any {
 		if (user !== undefined) {
@@ -232,10 +247,12 @@ export default class Session implements SessionContract {
 		}
 		return null;
 	}
+
 	/**
 	 * Removes the user if it exists in the Session.
 	 *
-	 * This method does NOT remove the user's token if there is any.
+	 * This method does NOT remove the user's token if there is any,
+	 * otherwise you also need to call Session.revokeToken()
 	 * @returns {this} this
 	 */
 	removeUser(): this {
@@ -281,7 +298,7 @@ export class ExpiringSession implements ExpiringStateContract {
 			});
 		}
 	}
-	getAll(): any {
+	private getAll(): any {
 		try {
 			const data = this.parent.get(this.key);
 			return data !== null ? data : {};
@@ -303,7 +320,7 @@ export class ExpiringSession implements ExpiringStateContract {
 		}
 		return data.value;
 	}
-	setAll(data: any): this {
+	private setAll(data: any): this {
 		this.parent.set(this.key, data);
 		return this;
 	}
@@ -380,14 +397,14 @@ export class FlashSession implements FlashStateContract {
 		data[key] = value;
 		return this.setAll(data);
 	}
-	getAll(): any {
+	private getAll(): any {
 		const state = this.parent.get(this.key);
 		if (state === null) {
 			return {};
 		}
 		return state;
 	}
-	setAll(data: any): this {
+	private setAll(data: any): this {
 		this.parent.set(this.key, data);
 		return this;
 	}
@@ -415,7 +432,7 @@ export class NonPersistingSession implements NonPersistingStateContract {
 	get(key: string): any {
 		return this.has(key) ? (this.getAll() as any)[key] : null;
 	}
-	getAll(): object {
+	private getAll(): object {
 		try {
 			return JSON.parse(this.Storage.getItem(this.key) || '');
 		} catch (error) {
@@ -427,7 +444,7 @@ export class NonPersistingSession implements NonPersistingStateContract {
 		data[key] = value;
 		return this.setAll(data);
 	}
-	setAll(data: object): this {
+	private setAll(data: object): this {
 		this.Storage.setItem(this.key, JSON.stringify(data));
 		return this;
 	}

@@ -1,12 +1,12 @@
-import SessionContract, { StateContract, ExpiringStateContract, FlashStateContract, NonPersistingStateContract } from './types';
+import SessionContract, { ExpiringStateContract, FlashStateContract, NonPersistingStateContract } from './types';
 export default class Session implements SessionContract {
     key: string;
     token_key: string;
     Storage: typeof window.localStorage;
-    state: StateContract;
-    temp: ExpiringSession;
-    flash: FlashSession;
-    nonpersisting: NonPersistingSession;
+    private state;
+    private temp;
+    private flash;
+    private nonpersisting;
     [key: string]: any;
     constructor();
     /**
@@ -46,7 +46,7 @@ export default class Session implements SessionContract {
      * Gets all the data that's saved in the Session.
      * @returns {object} data
      */
-    getAll(): StateContract;
+    private getAll;
     /**
      * Saves the data into the window.localStorage object.
      *
@@ -55,7 +55,7 @@ export default class Session implements SessionContract {
      * @param {object} data
      * @returns {this} this
      */
-    setAll(data: object): this;
+    private setAll;
     /**
      * Gets the current ID of the Session which contains the time of when the Session was first used.
      * @returns {string} Session ID
@@ -84,7 +84,7 @@ export default class Session implements SessionContract {
      * any will return a token if it exists or null if it does not exist.
      * @param token - If passed a token, it will be saved. Otherwise a token will be returned if it exists already.
      * @param remember - Whether to persist the token on page reloads or not.
-     * @returns {(this|string|null)} set = this, get = string | null
+     * @returns {(this|string|null)} this | string | null
      */
     token(token?: string, remember?: boolean): this | string | null;
     /**
@@ -104,13 +104,14 @@ export default class Session implements SessionContract {
      * any will return a user if it exists or null if it does not exist.
      * @param user - If passed a user, it will be saved. Otherwise a user will be returned if it exists already.
      * @param remember - Whether to persist the user on page reloads or not.
-     * @returns {(this|user|null)} set = this, get = user | null
+     * @returns {(this|user|null)} this | user | null
      */
     user(user?: any, remember?: boolean): any;
     /**
      * Removes the user if it exists in the Session.
      *
-     * This method does NOT remove the user's token if there is any.
+     * This method does NOT remove the user's token if there is any,
+     * otherwise you also need to call Session.revokeToken()
      * @returns {this} this
      */
     removeUser(): this;
@@ -126,9 +127,9 @@ export declare class ExpiringSession implements ExpiringStateContract {
     key: string;
     parent: Session;
     constructor(parent: Session);
-    getAll(): any;
+    private getAll;
     get(key: string): any;
-    setAll(data: any): this;
+    private setAll;
     set(key: string, value: any, minutes: number): this;
     remove(key: string): this;
     clear(): this;
@@ -141,8 +142,8 @@ export declare class FlashSession implements FlashStateContract {
     constructor(session: Session);
     get(key: string): any;
     set(key: string, value: any): this;
-    getAll(): any;
-    setAll(data: any): this;
+    private getAll;
+    private setAll;
     has(key: string): boolean;
     remove(key: string): this;
     clear(): this;
@@ -152,9 +153,9 @@ export declare class NonPersistingSession implements NonPersistingStateContract 
     Storage: typeof window.sessionStorage;
     constructor();
     get(key: string): any;
-    getAll(): object;
+    private getAll;
     set(key: string, value: any): this;
-    setAll(data: object): this;
+    private setAll;
     remove(key: string): this;
     clear(): this;
     has(key: string): boolean;

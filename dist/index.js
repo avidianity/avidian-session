@@ -175,7 +175,7 @@ var Session = /** @class */ (function () {
      * any will return a token if it exists or null if it does not exist.
      * @param token - If passed a token, it will be saved. Otherwise a token will be returned if it exists already.
      * @param remember - Whether to persist the token on page reloads or not.
-     * @returns {(this|string|null)} set = this, get = string | null
+     * @returns {(this|string|null)} this | string | null
      */
     Session.prototype.token = function (token, remember) {
         if (remember === void 0) { remember = true; }
@@ -226,7 +226,7 @@ var Session = /** @class */ (function () {
      * any will return a user if it exists or null if it does not exist.
      * @param user - If passed a user, it will be saved. Otherwise a user will be returned if it exists already.
      * @param remember - Whether to persist the user on page reloads or not.
-     * @returns {(this|user|null)} set = this, get = user | null
+     * @returns {(this|user|null)} this | user | null
      */
     Session.prototype.user = function (user, remember) {
         if (remember === void 0) { remember = true; }
@@ -252,7 +252,8 @@ var Session = /** @class */ (function () {
     /**
      * Removes the user if it exists in the Session.
      *
-     * This method does NOT remove the user's token if there is any.
+     * This method does NOT remove the user's token if there is any,
+     * otherwise you also need to call Session.revokeToken()
      * @returns {this} this
      */
     Session.prototype.removeUser = function () {
