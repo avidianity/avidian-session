@@ -14,7 +14,10 @@
 	},
 	"keywords": [
 		"JavaScript",
-		"Session"
+		"Session",
+		"TypeScript",
+		"localStorage",
+		"sessionStorage"
 	],
 	"author": "John Michael Manlupig",
 	"license": "MIT",
