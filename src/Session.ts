@@ -1,12 +1,9 @@
-import SessionContract, {
-	StateContract,
-	ExpiringStateContract,
-	ExpiryContract,
-	FlashStateContract,
-	NonPersistingStateContract,
-} from './types';
+import { StateContract, SessionContract } from './types/index';
+import { ExpiringSession } from './ExpiringSession';
+import { FlashSession } from './FlashSession';
+import { NonPersistingSession } from './NonPersistingSession';
 
-export default class Session implements SessionContract {
+export class Session implements SessionContract {
 	key: string;
 	token_key: string;
 	Storage: typeof window.localStorage;
@@ -15,14 +12,20 @@ export default class Session implements SessionContract {
 	private flash: FlashSession;
 	private nonpersisting: NonPersistingSession;
 	[key: string]: any;
-	constructor() {
-		this.key = 'avidian-session-key';
-		this.token_key = 'avidian-token-key';
+
+	/**
+	 * Creates a new Session.
+	 * @param {string} key The unique key to store session data.
+	 * @param {string} token_key The unique key to store the user's token.
+	 */
+	constructor(key?: string, token_key?: string) {
+		this.key = key ? key : 'avidian-session-key';
+		this.token_key = token_key ? token_key : 'avidian-token-key';
 		this.Storage = window.localStorage;
 		this.state = {};
 		this.temp = new ExpiringSession(this);
 		this.flash = new FlashSession(this);
-		this.nonpersisting = new NonPersistingSession();
+		this.nonpersisting = new NonPersistingSession(this.key);
 	}
 
 	/**
@@ -62,8 +65,8 @@ export default class Session implements SessionContract {
 	 * Sets a key with a given value or data.
 	 *
 	 * 'key' and 'session-id' are reserved words thus using them as keys will not be saved.
-	 * @param {string} key - The key that will represent the value or data.
-	 * @param {any} data - The data or value that will be saved. Typically this will be an object but it can be anything else.
+	 * @param {string} key The key that will represent the value or data.
+	 * @param {any} data The data or value that will be saved. Typically this will be an object but it can be anything else.
 	 * @returns {this} this
 	 */
 	set(key: string, data: any): this {
@@ -82,7 +85,7 @@ export default class Session implements SessionContract {
 
 	/**
 	 * Renew's the Session's ID.
-	 * @param {boolean} clear - Whether to clear existing data or not.
+	 * @param {boolean} clear Whether to clear existing data or not.
 	 * @returns {this} this
 	 */
 	renew(clear: boolean = false): this {
@@ -162,7 +165,7 @@ export default class Session implements SessionContract {
 			const data = this.getAll() as any;
 			delete data[key];
 			this.setAll(data);
-			delete this.state;
+			this.state = {};
 			delete this[key];
 		}
 		return this;
@@ -173,8 +176,8 @@ export default class Session implements SessionContract {
 	 *
 	 * Passing arguments (token and remember) saves a token while not passing
 	 * any will return a token if it exists or null if it does not exist.
-	 * @param token - If passed a token, it will be saved. Otherwise a token will be returned if it exists already.
-	 * @param remember - Whether to persist the token on page reloads or not.
+	 * @param token If passed a token, it will be saved. Otherwise a token will be returned if it exists already.
+	 * @param remember Whether to persist the token on page reloads or not.
 	 * @returns {(this|string|null)} this | string | null
 	 */
 	token(token?: string, remember = true): this | string | null {
@@ -212,7 +215,7 @@ export default class Session implements SessionContract {
 
 	/**
 	 * Checks if a token is saved.
-	 * @returns {boolean} true or false
+	 * @returns {boolean}
 	 */
 	hasToken(): boolean {
 		return (
@@ -225,8 +228,8 @@ export default class Session implements SessionContract {
 	 *
 	 * Passing arguments (user and remember) saves a user while not passing
 	 * any will return a user if it exists or null if it does not exist.
-	 * @param user - If passed a user, it will be saved. Otherwise a user will be returned if it exists already.
-	 * @param remember - Whether to persist the user on page reloads or not.
+	 * @param user If passed a user object, it will be saved. Otherwise a user will be returned if it exists already.
+	 * @param remember Whether to persist the user on page reloads or not.
 	 * @returns {(this|user|null)} this | user | null
 	 */
 	user(user?: any, remember = true): any {
@@ -265,198 +268,22 @@ export default class Session implements SessionContract {
 		}
 		return this;
 	}
-}
 
-export class SessionException extends Error {
-	[key: string]: any;
-	constructor(message: string) {
-		super(message);
+	/**
+	 * Converts the Session's current state into a JSON string.
+	 *
+	 * @returns {string} state
+	 */
+	toJSON(): string {
+		return JSON.stringify(this.state);
 	}
-	toJSON(): object {
-		const data: { [key: string]: any } = {};
-		Object.keys(this).forEach((key) => {
-			data[key] = this[key];
-		});
-		return data;
-	}
-	toObject() {
-		return this.toJSON();
-	}
-}
 
-export class ExpiringSession implements ExpiringStateContract {
-	id: string;
-	key: string;
-	parent: Session;
-	constructor(parent: Session) {
-		this.id = `sess-temp:${Date.now()}`;
-		this.key = 'avidian-expiring-session-key';
-		this.parent = parent;
-		if (!('session-id' in this.getAll())) {
-			this.setAll({
-				'session-id': this.id,
-			});
-		}
-	}
-	private getAll(): any {
-		try {
-			const data = this.parent.get(this.key);
-			return data !== null ? data : {};
-		} catch (error) {
-			return {};
-		}
-	}
-	get(key: string): any {
-		const session = this.getAll();
-		if (!(key in session)) {
-			return null;
-		}
-		const now = new Date(Date.now());
-		const data = session[key] as ExpiryContract;
-		const expiry = new Date(data.expiry);
-		if (now > expiry) {
-			this.remove(key);
-			return null;
-		}
-		return data.value;
-	}
-	private setAll(data: any): this {
-		this.parent.set(this.key, data);
-		return this;
-	}
-	set(key: string, value: any, minutes: number): this {
-		const data: ExpiryContract = {
-			value,
-			expiry: new Date(Date.now() + minutes * 60 * 1000).getTime(),
-		};
-		const session = this.getAll();
-		session[key] = data;
-		this.setAll(session);
-		return this;
-	}
-	remove(key: string): this {
-		const data = this.getAll();
-		if (key in data) {
-			delete data[key];
-			this.setAll(data);
-		}
-		return this;
-	}
-	clear(): this {
-		return this.renew(true);
-	}
-	has(key: string): boolean {
-		const session = this.getAll();
-		if (!(key in session)) {
-			return false;
-		}
-		const now = new Date(Date.now());
-		const data = session[key] as ExpiryContract;
-		const expiry = new Date(data.expiry);
-		if (now > expiry) {
-			this.remove(key);
-			return false;
-		}
-		return true;
-	}
-	renew(clear: boolean = false): this {
-		this.id = `sess-temp:${Date.now()}`;
-		if (clear) {
-			return this.setAll({
-				'session-id': this.id,
-			});
-		} else {
-			const data = this.getAll();
-			data['session-id'] = this.id;
-			return this.setAll(data);
-		}
-	}
-}
-
-export class FlashSession implements FlashStateContract {
-	key: string;
-	parent: Session;
-	constructor(session: Session) {
-		this.key = 'avidian-flash-session-key';
-		this.parent = session;
-		const state = this.getAll();
-		if (state === null) {
-			this.setAll({});
-		} else {
-			this.setAll(state);
-		}
-	}
-	get(key: string): any {
-		const data = this.getAll();
-		const value = data[key];
-		this.remove(key);
-		return value;
-	}
-	set(key: string, value: any): this {
-		const data = this.getAll();
-		data[key] = value;
-		return this.setAll(data);
-	}
-	private getAll(): any {
-		const state = this.parent.get(this.key);
-		if (state === null) {
-			return {};
-		}
-		return state;
-	}
-	private setAll(data: any): this {
-		this.parent.set(this.key, data);
-		return this;
-	}
-	has(key: string): boolean {
-		return key in this.getAll();
-	}
-	remove(key: string): this {
-		const data = this.getAll();
-		delete data[key];
-		this.setAll(data);
-		return this;
-	}
-	clear(): this {
-		return this.setAll({});
-	}
-}
-
-export class NonPersistingSession implements NonPersistingStateContract {
-	key: string;
-	Storage: typeof window.sessionStorage;
-	constructor() {
-		this.key = 'avidian-non-persisting-session-key';
-		this.Storage = window.sessionStorage;
-	}
-	get(key: string): any {
-		return this.has(key) ? (this.getAll() as any)[key] : null;
-	}
-	private getAll(): object {
-		try {
-			return JSON.parse(this.Storage.getItem(this.key) || '');
-		} catch (error) {
-			return {};
-		}
-	}
-	set(key: string, value: any): this {
-		const data = this.getAll() as any;
-		data[key] = value;
-		return this.setAll(data);
-	}
-	private setAll(data: object): this {
-		this.Storage.setItem(this.key, JSON.stringify(data));
-		return this;
-	}
-	remove(key: string): this {
-		const data = this.getAll() as any;
-		delete data[key];
-		return this.setAll(data);
-	}
-	clear(): this {
-		return this.setAll({});
-	}
-	has(key: string): boolean {
-		return key in this.getAll();
+	/**
+	 * Converts the Session's current state into a JSON string.
+	 *
+	 * @returns {StateContract} state
+	 */
+	toObject(): StateContract {
+		return this.state;
 	}
 }

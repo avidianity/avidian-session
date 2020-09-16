@@ -1,28 +1,30 @@
 {
-  "name": "avidian-session",
-  "version": "0.0.1",
-  "description": "A Session management library with TypeScript support.",
-  "main": "index.ts",
-  "scripts": {
-    "publish": "npm publish"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/avidianitry/avidian-session.git"
-  },
-  "keywords": [
-    "JavaScript",
-    "Session"
-  ],
-  "author": "John Michael Manlupig",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/avidianitry/avidian-session/issues"
-  },
-  "homepage": "https://github.com/avidianitry/avidian-session#readme",
-  "types": "dist/index.d.ts",
-  "prepublish": "tsc",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  }
+	"name": "avidian-session",
+	"version": "1.0.0",
+	"description": "A Session management library with TypeScript support.",
+	"main": "dist/index.js",
+	"scripts": {
+		"publish": "npm publish",
+		"tsc": "tsc",
+		"build": "tsc"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/avidianity/session.git"
+	},
+	"keywords": [
+		"JavaScript",
+		"Session"
+	],
+	"author": "John Michael Manlupig",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/avidianity/session/issues"
+	},
+	"homepage": "https://github.com/avidianity/session#readme",
+	"types": "dist/index.d.ts",
+	"prepublish": "tsc",
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com/"
+	}
 }
