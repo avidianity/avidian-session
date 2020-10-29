@@ -1,6 +1,6 @@
 {
 	"name": "@avidianity/session",
-	"version": "1.0.1",
+	"version": "1.5.0",
 	"description": "A Session management library with TypeScript support.",
 	"main": "dist/index.js",
 	"scripts": {

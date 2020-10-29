@@ -4,7 +4,7 @@ export declare class FlashSession implements FlashStateContract {
     key: string;
     parent: Session;
     constructor(session: Session);
-    get(key: string): any;
+    get<T = any>(key: string): T;
     set(key: string, value: any): this;
     private getAll;
     private setAll;
