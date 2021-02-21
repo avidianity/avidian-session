@@ -1,9 +1,9 @@
-import { ExpiringStateContract, SessionContract } from './types/index';
-export declare class ExpiringSession implements ExpiringStateContract {
+import { Session } from './Session';
+export declare class ExpiringSession {
     id: string;
     key: string;
-    parent: SessionContract;
-    constructor(parent: SessionContract);
+    parent: Session;
+    constructor(parent: Session);
     private getAll;
     get(key: string): any;
     private setAll;

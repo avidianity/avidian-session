@@ -1,16 +1,16 @@
-import { StateContract, SessionContract } from './types/index';
 import { ExpiringSession } from './ExpiringSession';
 import { FlashSession } from './FlashSession';
 import { NonPersistingSession } from './NonPersistingSession';
 import { ChangeEvent, StateEventHandler } from './StateEventHandler';
 import { StateStorage } from './StateStorage';
+import { State as StateContract } from './types/State';
 import serialize from 'serialize-javascript';
 
-export class Session implements SessionContract {
+export class Session {
 	key: string;
 	token_key: string;
 	Storage: StateStorage;
-	protected state: StateContract;
+	protected state: any;
 	protected temp: ExpiringSession;
 	protected flash: FlashSession;
 	protected nonpersisting: NonPersistingSession;
@@ -107,9 +107,12 @@ export class Session implements SessionContract {
 	 * Returns null if it does not exist.
 	 * @param {string} key
 	 */
-	get<T = any>(key: string): T {
+	get<T>(key: string): T | null {
 		const data = this.getAll();
-		return data[key];
+		if (key in data) {
+			return data[key] as T;
+		}
+		return null;
 	}
 
 	/**
@@ -157,7 +160,10 @@ export class Session implements SessionContract {
 			if (!raw) {
 				return {};
 			}
-			const data = eval(`(${raw})`);
+			let data = eval(`(${raw})`);
+			if (typeof data !== 'object') {
+				data = {};
+			}
 			this.state = data;
 			return data;
 		} catch (error) {
@@ -182,7 +188,11 @@ export class Session implements SessionContract {
 	 * Gets the current ID of the Session which contains the time of when the Session was first used.
 	 */
 	id(): string {
-		return this.get('session-id');
+		if (!this.has('session-id')) {
+			this.start;
+		}
+		const id = this.get('session-id');
+		return `${id}`;
 	}
 
 	/**

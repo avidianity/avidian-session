@@ -1,5 +1,4 @@
-import { NonPersistingStateContract } from './types/index';
-export declare class NonPersistingSession implements NonPersistingStateContract {
+export declare class NonPersistingSession {
     key: string;
     Storage: typeof window.sessionStorage;
     constructor(key?: string);

@@ -1,14 +1,14 @@
-import { StateContract, SessionContract } from './types/index';
 import { ExpiringSession } from './ExpiringSession';
 import { FlashSession } from './FlashSession';
 import { NonPersistingSession } from './NonPersistingSession';
 import { ChangeEvent, StateEventHandler } from './StateEventHandler';
 import { StateStorage } from './StateStorage';
-export declare class Session implements SessionContract {
+import { State as StateContract } from './types/State';
+export declare class Session {
     key: string;
     token_key: string;
     Storage: StateStorage;
-    protected state: StateContract;
+    protected state: any;
     protected temp: ExpiringSession;
     protected flash: FlashSession;
     protected nonpersisting: NonPersistingSession;
@@ -62,7 +62,7 @@ export declare class Session implements SessionContract {
      * Returns null if it does not exist.
      * @param {string} key
      */
-    get<T = any>(key: string): T;
+    get<T>(key: string): T | null;
     /**
      * Sets a key with a given value or data.
      *

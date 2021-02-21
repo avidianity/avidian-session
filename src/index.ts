@@ -9,4 +9,5 @@ export { SessionException } from './SessionException';
 export { StateEventHandler } from './StateEventHandler';
 export { StateStorage } from './StateStorage';
 
-export * from './types/index';
+export { Expiry as ExpiryContract } from './types/Expiry';
+export { State as StateContract } from './types/State';

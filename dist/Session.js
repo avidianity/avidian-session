@@ -90,7 +90,10 @@ export class Session {
      */
     get(key) {
         const data = this.getAll();
-        return data[key];
+        if (key in data) {
+            return data[key];
+        }
+        return null;
     }
     /**
      * Sets a key with a given value or data.
@@ -131,7 +134,10 @@ export class Session {
             if (!raw) {
                 return {};
             }
-            const data = eval(`(${raw})`);
+            let data = eval(`(${raw})`);
+            if (typeof data !== 'object') {
+                data = {};
+            }
             this.state = data;
             return data;
         }
@@ -155,7 +161,11 @@ export class Session {
      * Gets the current ID of the Session which contains the time of when the Session was first used.
      */
     id() {
-        return this.get('session-id');
+        if (!this.has('session-id')) {
+            this.start;
+        }
+        const id = this.get('session-id');
+        return `${id}`;
     }
     /**
      * Clears all saved data and creates a new Session ID.

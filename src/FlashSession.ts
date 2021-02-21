@@ -1,10 +1,10 @@
-import { FlashStateContract, SessionContract } from './types/index';
+import { Session } from './Session';
 
-export class FlashSession implements FlashStateContract {
+export class FlashSession {
 	key: string;
-	parent: SessionContract;
+	parent: Session;
 
-	constructor(session: SessionContract) {
+	constructor(session: Session) {
 		this.key = 'flash-session-key';
 		this.parent = session;
 		const state = this.getAll();
@@ -30,7 +30,7 @@ export class FlashSession implements FlashStateContract {
 
 	private getAll(): any {
 		const state = this.parent.get(this.key);
-		if (state === null) {
+		if (!state) {
 			return {};
 		}
 		return state;

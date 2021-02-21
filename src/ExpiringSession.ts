@@ -1,15 +1,17 @@
-import { ExpiringStateContract, ExpiryContract, SessionContract } from './types/index';
+import { Expiry as ExpiryContract } from './types/Expiry';
+import { Session } from './Session';
 
-export class ExpiringSession implements ExpiringStateContract {
+export class ExpiringSession {
 	id: string;
 	key: string;
-	parent: SessionContract;
+	parent: Session;
 
-	constructor(parent: SessionContract) {
+	constructor(parent: Session) {
 		this.id = `sess-temp:${Date.now()}`;
-		this.key = 'avidian-expiring-session-key';
+		this.key = 'expiring-session-key';
 		this.parent = parent;
-		if (!('session-id' in this.getAll())) {
+		const data = this.getAll();
+		if (data && !('session-id' in data)) {
 			this.setAll({
 				'session-id': this.id,
 			});
@@ -17,12 +19,10 @@ export class ExpiringSession implements ExpiringStateContract {
 	}
 
 	private getAll(): any {
-		try {
-			const data = this.parent.get(this.key);
-			return data !== null ? data : {};
-		} catch (error) {
-			return {};
+		if (!this.parent.has(this.key)) {
+			this.setAll({});
 		}
+		return this.parent.get(this.key);
 	}
 
 	get(key: string): any {

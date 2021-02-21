@@ -1,22 +1,20 @@
 export class ExpiringSession {
     constructor(parent) {
         this.id = `sess-temp:${Date.now()}`;
-        this.key = 'avidian-expiring-session-key';
+        this.key = 'expiring-session-key';
         this.parent = parent;
-        if (!('session-id' in this.getAll())) {
+        const data = this.getAll();
+        if (data && !('session-id' in data)) {
             this.setAll({
                 'session-id': this.id,
             });
         }
     }
     getAll() {
-        try {
-            const data = this.parent.get(this.key);
-            return data !== null ? data : {};
+        if (!this.parent.has(this.key)) {
+            this.setAll({});
         }
-        catch (error) {
-            return {};
-        }
+        return this.parent.get(this.key);
     }
     get(key) {
         const session = this.getAll();

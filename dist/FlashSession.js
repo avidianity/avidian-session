@@ -23,7 +23,7 @@ export class FlashSession {
     }
     getAll() {
         const state = this.parent.get(this.key);
-        if (state === null) {
+        if (!state) {
             return {};
         }
         return state;
