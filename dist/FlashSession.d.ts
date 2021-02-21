@@ -1,9 +1,8 @@
-import { FlashStateContract } from './types/index';
-import { Session } from './Session';
+import { FlashStateContract, SessionContract } from './types/index';
 export declare class FlashSession implements FlashStateContract {
     key: string;
-    parent: Session;
-    constructor(session: Session);
+    parent: SessionContract;
+    constructor(session: SessionContract);
     get<T = any>(key: string): T;
     set(key: string, value: any): this;
     private getAll;

@@ -1,15 +1,20 @@
 import { StateContract, SessionContract } from './types/index';
-import { ChangeEvent } from './StateEventHandler';
+import { ExpiringSession } from './ExpiringSession';
+import { FlashSession } from './FlashSession';
+import { NonPersistingSession } from './NonPersistingSession';
+import { ChangeEvent, StateEventHandler } from './StateEventHandler';
 import { StateStorage } from './StateStorage';
 export declare class Session implements SessionContract {
     key: string;
     token_key: string;
     Storage: StateStorage;
-    private state;
-    private temp;
-    private flash;
-    private nonpersisting;
-    private listeners;
+    protected state: StateContract;
+    protected temp: ExpiringSession;
+    protected flash: FlashSession;
+    protected nonpersisting: NonPersistingSession;
+    protected listeners: {
+        [key: string]: StateEventHandler;
+    };
     [key: string]: any;
     /**
      * Creates a new Session.
@@ -20,6 +25,7 @@ export declare class Session implements SessionContract {
     /**
      * Changes the current storage to be used.
      * @param storage The storage to be replaced.
+     * @param {boolean} clear Whether to clear the data or not.
      */
     use(storage: StateStorage, clear?: boolean): this;
     /**
@@ -39,7 +45,7 @@ export declare class Session implements SessionContract {
      * @param key The key of the data being set.
      * @param data The actual data that will be set on the key.
      */
-    private dispatch;
+    protected dispatch(key: string, data: any): this;
     /**
      * Starts a persistent session.
      */
@@ -73,7 +79,7 @@ export declare class Session implements SessionContract {
     /**
      * Gets all the data that's saved in the Session.
      */
-    private getAll;
+    protected getAll(): StateContract;
     /**
      * Saves the data into `Storage`.
      *
@@ -81,7 +87,7 @@ export declare class Session implements SessionContract {
      * Use set() instead.
      * @param {object} data
      */
-    private setAll;
+    protected setAll(data: object): this;
     /**
      * Gets the current ID of the Session which contains the time of when the Session was first used.
      */

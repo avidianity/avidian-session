@@ -1,11 +1,11 @@
-import { ExpiringStateContract, ExpiryContract } from './types/index';
-import { Session } from './Session';
+import { ExpiringStateContract, ExpiryContract, SessionContract } from './types/index';
 
 export class ExpiringSession implements ExpiringStateContract {
 	id: string;
 	key: string;
-	parent: Session;
-	constructor(parent: Session) {
+	parent: SessionContract;
+
+	constructor(parent: SessionContract) {
 		this.id = `sess-temp:${Date.now()}`;
 		this.key = 'avidian-expiring-session-key';
 		this.parent = parent;
@@ -15,6 +15,7 @@ export class ExpiringSession implements ExpiringStateContract {
 			});
 		}
 	}
+
 	private getAll(): any {
 		try {
 			const data = this.parent.get(this.key);
@@ -23,6 +24,7 @@ export class ExpiringSession implements ExpiringStateContract {
 			return {};
 		}
 	}
+
 	get(key: string): any {
 		const session = this.getAll();
 		if (!(key in session)) {
@@ -37,10 +39,12 @@ export class ExpiringSession implements ExpiringStateContract {
 		}
 		return data.value;
 	}
+
 	private setAll(data: any): this {
 		this.parent.set(this.key, data);
 		return this;
 	}
+
 	set(key: string, value: any, minutes: number): this {
 		const data: ExpiryContract = {
 			value,
@@ -51,6 +55,7 @@ export class ExpiringSession implements ExpiringStateContract {
 		this.setAll(session);
 		return this;
 	}
+
 	remove(key: string): this {
 		const data = this.getAll();
 		if (key in data) {
@@ -59,9 +64,11 @@ export class ExpiringSession implements ExpiringStateContract {
 		}
 		return this;
 	}
+
 	clear(): this {
 		return this.renew(true);
 	}
+
 	has(key: string): boolean {
 		const session = this.getAll();
 		if (!(key in session)) {
@@ -76,6 +83,7 @@ export class ExpiringSession implements ExpiringStateContract {
 		}
 		return true;
 	}
+
 	renew(clear: boolean = false): this {
 		this.id = `sess-temp:${Date.now()}`;
 		if (clear) {

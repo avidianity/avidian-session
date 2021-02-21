@@ -1,8 +1,8 @@
 import { ExpiringSession } from './ExpiringSession';
 import { FlashSession } from './FlashSession';
 import { NonPersistingSession } from './NonPersistingSession';
-import { SessionException } from './SessionException';
 import { StateEventHandler } from './StateEventHandler';
+import serialize from 'serialize-javascript';
 export class Session {
     /**
      * Creates a new Session.
@@ -11,8 +11,8 @@ export class Session {
      */
     constructor(key, token_key, storage) {
         this.listeners = {};
-        this.key = key ? key : 'avidian-session-key';
-        this.token_key = token_key ? token_key : 'avidian-token-key';
+        this.key = key ? key : 'session-key';
+        this.token_key = token_key ? token_key : 'token-key';
         this.Storage = storage || localStorage;
         this.state = {};
         this.temp = new ExpiringSession(this);
@@ -22,12 +22,13 @@ export class Session {
     /**
      * Changes the current storage to be used.
      * @param storage The storage to be replaced.
+     * @param {boolean} clear Whether to clear the data or not.
      */
     use(storage, clear = false) {
-        const data = { ...this.getAll() };
         if (clear) {
             this.clearAll();
         }
+        const data = Object.assign({}, this.getAll());
         this.Storage = storage;
         this.setAll(data);
         return this;
@@ -89,10 +90,7 @@ export class Session {
      */
     get(key) {
         const data = this.getAll();
-        if (key in data) {
-            return data[key];
-        }
-        throw new SessionException(`${key} does not exist in session.`);
+        return data[key];
     }
     /**
      * Sets a key with a given value or data.
@@ -108,10 +106,7 @@ export class Session {
         if (!this.has('session-id')) {
             this.start();
         }
-        return this.dispatch(key, data).setAll({
-            ...this.getAll(),
-            [key]: data,
-        });
+        return this.dispatch(key, data).setAll(Object.assign(Object.assign({}, this.getAll()), { [key]: data }));
     }
     /**
      * Renew's the Session's ID.
@@ -132,7 +127,12 @@ export class Session {
      */
     getAll() {
         try {
-            const data = JSON.parse(this.Storage.getItem(this.key) || '{}');
+            const raw = this.Storage.getItem(this.key);
+            if (!raw) {
+                return {};
+            }
+            const data = eval(`(${raw})`);
+            this.state = data;
             return data;
         }
         catch (error) {
@@ -148,7 +148,7 @@ export class Session {
      */
     setAll(data) {
         this.state = data;
-        this.Storage.setItem(this.key, JSON.stringify(data));
+        this.Storage.setItem(this.key, serialize(data));
         return this;
     }
     /**
@@ -234,7 +234,7 @@ export class Session {
      * Checks if a token is saved.
      */
     hasToken() {
-        return (this.has(this.token_key) || this.nonpersisting.has(this.token_key));
+        return this.has(this.token_key) || this.nonpersisting.has(this.token_key);
     }
     /**
      * This method is used as a getter and setter for the user's data.

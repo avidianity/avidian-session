@@ -2,19 +2,19 @@ import { StateContract, SessionContract } from './types/index';
 import { ExpiringSession } from './ExpiringSession';
 import { FlashSession } from './FlashSession';
 import { NonPersistingSession } from './NonPersistingSession';
-import { SessionException } from './SessionException';
 import { ChangeEvent, StateEventHandler } from './StateEventHandler';
 import { StateStorage } from './StateStorage';
+import serialize from 'serialize-javascript';
 
 export class Session implements SessionContract {
 	key: string;
 	token_key: string;
 	Storage: StateStorage;
-	private state: StateContract;
-	private temp: ExpiringSession;
-	private flash: FlashSession;
-	private nonpersisting: NonPersistingSession;
-	private listeners: { [key: string]: StateEventHandler } = {};
+	protected state: StateContract;
+	protected temp: ExpiringSession;
+	protected flash: FlashSession;
+	protected nonpersisting: NonPersistingSession;
+	protected listeners: { [key: string]: StateEventHandler } = {};
 	[key: string]: any;
 
 	/**
@@ -23,8 +23,8 @@ export class Session implements SessionContract {
 	 * @param {string} token_key The unique key to store the user's token.
 	 */
 	constructor(key?: string, token_key?: string, storage?: StateStorage) {
-		this.key = key ? key : 'avidian-session-key';
-		this.token_key = token_key ? token_key : 'avidian-token-key';
+		this.key = key ? key : 'session-key';
+		this.token_key = token_key ? token_key : 'token-key';
 		this.Storage = storage || localStorage;
 		this.state = {};
 		this.temp = new ExpiringSession(this);
@@ -35,12 +35,13 @@ export class Session implements SessionContract {
 	/**
 	 * Changes the current storage to be used.
 	 * @param storage The storage to be replaced.
+	 * @param {boolean} clear Whether to clear the data or not.
 	 */
-	use(storage: StateStorage, clear = false) {
-		const data = { ...this.getAll() };
+	use(storage: StateStorage, clear: boolean = false) {
 		if (clear) {
 			this.clearAll();
 		}
+		const data = { ...this.getAll() };
 		this.Storage = storage;
 		this.setAll(data);
 		return this;
@@ -75,7 +76,7 @@ export class Session implements SessionContract {
 	 * @param key The key of the data being set.
 	 * @param data The actual data that will be set on the key.
 	 */
-	private dispatch(key: string, data: any) {
+	protected dispatch(key: string, data: any) {
 		if (key in this.listeners) {
 			this.listeners[key].call(data);
 		}
@@ -108,10 +109,7 @@ export class Session implements SessionContract {
 	 */
 	get<T = any>(key: string): T {
 		const data = this.getAll();
-		if (key in data) {
-			return data[key];
-		}
-		throw new SessionException(`${key} does not exist in session.`);
+		return data[key];
 	}
 
 	/**
@@ -153,9 +151,14 @@ export class Session implements SessionContract {
 	/**
 	 * Gets all the data that's saved in the Session.
 	 */
-	private getAll(): StateContract {
+	protected getAll(): StateContract {
 		try {
-			const data = JSON.parse(this.Storage.getItem(this.key) || '{}');
+			const raw = this.Storage.getItem(this.key);
+			if (!raw) {
+				return {};
+			}
+			const data = eval(`(${raw})`);
+			this.state = data;
 			return data;
 		} catch (error) {
 			return {};
@@ -169,9 +172,9 @@ export class Session implements SessionContract {
 	 * Use set() instead.
 	 * @param {object} data
 	 */
-	private setAll(data: object): this {
+	protected setAll(data: object): this {
 		this.state = data;
-		this.Storage.setItem(this.key, JSON.stringify(data));
+		this.Storage.setItem(this.key, serialize(data));
 		return this;
 	}
 
@@ -261,9 +264,7 @@ export class Session implements SessionContract {
 	 * Checks if a token is saved.
 	 */
 	hasToken(): boolean {
-		return (
-			this.has(this.token_key) || this.nonpersisting.has(this.token_key)
-		);
+		return this.has(this.token_key) || this.nonpersisting.has(this.token_key);
 	}
 
 	/**

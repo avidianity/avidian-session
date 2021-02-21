@@ -1,6 +1,6 @@
 export class FlashSession {
     constructor(session) {
-        this.key = 'avidian-flash-session-key';
+        this.key = 'flash-session-key';
         this.parent = session;
         const state = this.getAll();
         if (state === null) {

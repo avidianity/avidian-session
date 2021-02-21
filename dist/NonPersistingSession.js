@@ -1,8 +1,6 @@
 export class NonPersistingSession {
     constructor(key) {
-        this.key = key
-            ? `non-persisting-${key}`
-            : 'avidian-non-persisting-session-key';
+        this.key = key ? `non-persisting-${key}` : 'non-persisting-session-key';
         this.Storage = window.sessionStorage;
     }
     get(key) {

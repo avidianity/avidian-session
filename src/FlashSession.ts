@@ -1,12 +1,11 @@
-import { FlashStateContract } from './types/index';
-import { Session } from './Session';
+import { FlashStateContract, SessionContract } from './types/index';
 
 export class FlashSession implements FlashStateContract {
 	key: string;
-	parent: Session;
+	parent: SessionContract;
 
-	constructor(session: Session) {
-		this.key = 'avidian-flash-session-key';
+	constructor(session: SessionContract) {
+		this.key = 'flash-session-key';
 		this.parent = session;
 		const state = this.getAll();
 		if (state === null) {
